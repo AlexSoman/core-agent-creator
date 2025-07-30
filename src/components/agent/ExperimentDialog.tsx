@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Agent } from "@/types/agent";
-import { Play, Sparkles, Target, User, Clock } from "lucide-react";
+import { Play, Sparkles, Target, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExperimentDialogProps {
@@ -25,8 +26,10 @@ interface ExperimentDialogProps {
 export function ExperimentDialog({ agent, open, onOpenChange }: ExperimentDialogProps) {
   const [experimentName, setExperimentName] = useState("");
   const [experimentPrompt, setExperimentPrompt] = useState("");
+  const [maxIterations, setMaxIterations] = useState(10);
   const [isRunning, setIsRunning] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleStartExperiment = async () => {
     if (!experimentName.trim() || !experimentPrompt.trim()) {
@@ -38,25 +41,24 @@ export function ExperimentDialog({ agent, open, onOpenChange }: ExperimentDialog
       return;
     }
 
-    setIsRunning(true);
-    
-    // Simulate experiment running
-    toast({
-      title: "Experiment Started",
-      description: `Starting "${experimentName}" with ${agent.name}...`,
-    });
-
-    // Simulate processing time
-    setTimeout(() => {
-      setIsRunning(false);
+    if (maxIterations < 1 || maxIterations > 100) {
       toast({
-        title: "Experiment Complete",
-        description: `"${experimentName}" has been successfully executed!`,
+        title: "Invalid Iterations",
+        description: "Max iterations must be between 1 and 100.",
+        variant: "destructive",
       });
-      setExperimentName("");
-      setExperimentPrompt("");
-      onOpenChange(false);
-    }, 3000);
+      return;
+    }
+
+    onOpenChange(false);
+    navigate(`/experiment/${agent.id}`, {
+      state: {
+        agent,
+        experimentName,
+        experimentPrompt,
+        maxIterations
+      }
+    });
   };
 
   return (
@@ -131,19 +133,27 @@ export function ExperimentDialog({ agent, open, onOpenChange }: ExperimentDialog
                 disabled={isRunning}
               />
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="max-iterations" className="text-sm font-medium">
+                Max Iterations
+              </Label>
+              <Input
+                id="max-iterations"
+                type="number"
+                min="1"
+                max="100"
+                placeholder="10"
+                value={maxIterations}
+                onChange={(e) => setMaxIterations(parseInt(e.target.value) || 10)}
+                disabled={isRunning}
+              />
+              <p className="text-xs text-muted-foreground">
+                Number of iterations to run the experiment (1-100)
+              </p>
+            </div>
           </div>
 
-          {isRunning && (
-            <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <Clock className="h-5 w-5 text-primary animate-spin" />
-              <div>
-                <p className="font-medium text-primary">Experiment in Progress</p>
-                <p className="text-sm text-muted-foreground">
-                  {agent.name} is working on "{experimentName}"...
-                </p>
-              </div>
-            </div>
-          )}
         </div>
         
         <DialogFooter>
@@ -159,17 +169,10 @@ export function ExperimentDialog({ agent, open, onOpenChange }: ExperimentDialog
             disabled={isRunning}
             className="min-w-[140px]"
           >
-            {isRunning ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Running...
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                Start Experiment
-              </>
-            )}
+            <>
+              <Play className="h-4 w-4 mr-2" />
+              Start Experiment
+            </>
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -4,6 +4,7 @@ export interface Agent {
   role: string;
   goal: string;
   backstory: string;
+  bestLLM?: string;
   createdAt: Date;
   updatedAt: Date;
 }
